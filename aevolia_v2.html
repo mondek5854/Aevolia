@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aevolia — Clinical Trial Optimization</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #040d1a;
+    --bg2: #071220;
+    --bg3: #0a1828;
+    --panel: #0d1f35;
+    --cyan: #00d4d4;
+    --cyan2: #00f0ff;
+    --cyan-dim: rgba(0,212,212,0.15);
+    --cyan-border: rgba(0,212,212,0.3);
+    --text: #c8e0f0;
+    --muted: #4a7090;
+    --bright: #e8f4ff;
+    --gold: #f0a830;
+    --red: #ff4444;
+    --green: #28e87a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* SCANLINE OVERLAY */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* GRID */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,212,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,212,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 48px;
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(4,13,26,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--cyan-border);
+  }
+
+  nav::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.5;
+  }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--cyan2);
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 20px rgba(0,240,255,0.5);
+  }
+
+  .nav-links { display: flex; gap: 32px; align-items: center; }
+
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+    transition: color 0.2s, text-shadow 0.2s;
+  }
+
+  nav a:hover {
+    color: var(--cyan);
+    text-shadow: 0 0 10px rgba(0,212,212,0.6);
+  }
+
+  .nav-cta {
+    border: 1px solid var(--cyan-border) !important;
+    color: var(--cyan) !important;
+    padding: 7px 18px;
+    border-radius: 2px;
+    background: var(--cyan-dim) !important;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 120px 48px 80px;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 800px; height: 800px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,212,212,0.06) 0%, transparent 70%);
+    top: 50%; right: -200px;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .hero-glow2 {
+    position: absolute;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,136,255,0.05) 0%, transparent 70%);
+    top: 20%; left: 30%;
+    pointer-events: none;
+  }
+
+  .hero-content { max-width: 680px; position: relative; }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--cyan);
+    margin-bottom: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero-tag::before {
+    content: '//';
+    opacity: 0.5;
+  }
+
+  .tag-dot {
+    width: 6px; height: 6px;
+    background: var(--cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--cyan);
+    animation: blink 1.5s ease infinite;
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(28px, 3.5vw, 52px);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: 0.05em;
+    color: var(--bright);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    animation: fadeUp 0.6s ease 0.1s both;
+    text-shadow: 0 0 40px rgba(0,212,212,0.2);
+  }
+
+  h1 .accent {
+    color: var(--cyan2);
+    text-shadow: 0 0 30px rgba(0,240,255,0.6);
+  }
+
+  .hero-sub-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(11px, 1.2vw, 14px);
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s ease 0.15s both;
+  }
+
+  .hero-desc {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--text);
+    max-width: 520px;
+    margin-bottom: 40px;
+    font-weight: 300;
+    animation: fadeUp 0.6s ease 0.2s both;
+    border-left: 2px solid var(--cyan-border);
+    padding-left: 20px;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    animation: fadeUp 0.6s ease 0.3s both;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, rgba(0,212,212,0.2), rgba(0,240,255,0.1));
+    border: 1px solid var(--cyan);
+    color: var(--cyan2);
+    padding: 14px 32px;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+    box-shadow: 0 0 20px rgba(0,212,212,0.15), inset 0 0 20px rgba(0,212,212,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,212,212,0.1), transparent);
+    transition: left 0.4s;
+  }
+
+  .btn-primary:hover::before { left: 100%; }
+  .btn-primary:hover {
+    box-shadow: 0 0 30px rgba(0,212,212,0.3), inset 0 0 20px rgba(0,212,212,0.1);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 0;
+    transition: color 0.2s;
+  }
+
+  .btn-ghost:hover { color: var(--cyan); }
+
+  /* STATS */
+  .stats {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--cyan-border);
+    border-bottom: 1px solid var(--cyan-border);
+    background: var(--bg2);
+  }
+
+  .stat {
+    padding: 28px 40px;
+    border-right: 1px solid var(--cyan-border);
+    position: relative;
+  }
+
+  .stat:last-child { border-right: none; }
+
+  .stat::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan-border), transparent);
+  }
+
+  .stat-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--cyan2);
+    line-height: 1;
+    margin-bottom: 8px;
+    text-shadow: 0 0 20px rgba(0,240,255,0.4);
+  }
+
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* PANEL STYLE */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--cyan-border);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.6;
+  }
+
+  .panel-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--cyan-border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,212,212,0.04);
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--cyan);
+  }
+
+  .panel-dot {
+    width: 8px; height: 8px;
+    background: var(--cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--cyan);
+    animation: blink 2s ease infinite;
+  }
+
+  /* PROBLEM */
+  .problem-section {
+    position: relative;
+    z-index: 1;
+    padding: 80px 48px;
+    background: var(--bg2);
+  }
+
+  .section-header { margin-bottom: 48px; }
+
+  .section-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-tag::before { content: '[ '; }
+  .section-tag::after { content: ' ]'; }
+
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(22px, 2.5vw, 36px);
+    font-weight: 700;
+    color: var(--bright);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+
+  .problem-cards { display: flex; flex-direction: column; gap: 12px; }
+
+  .problem-card {
+    background: var(--bg3);
+    border: 1px solid rgba(0,212,212,0.12);
+    border-left: 2px solid rgba(255,68,68,0.6);
+    padding: 20px;
+    transition: border-color 0.3s, background 0.3s;
+    cursor: default;
+  }
+
+  .problem-card:hover {
+    border-color: rgba(0,212,212,0.3);
+    border-left-color: var(--cyan);
+    background: rgba(0,212,212,0.03);
+  }
+
+  .problem-card h4 {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--bright);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .problem-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  .problem-quote {
+    border: 1px solid var(--cyan-border);
+    background: var(--bg3);
+    padding: 40px;
+    position: relative;
+  }
+
+  .problem-quote::before {
+    content: '"';
+    font-family: 'Orbitron', monospace;
+    font-size: 80px;
+    color: var(--cyan-border);
+    position: absolute;
+    top: 10px; left: 20px;
+    line-height: 1;
+  }
+
+  .problem-quote blockquote {
+    font-size: 18px;
+    line-height: 1.7;
+    color: var(--bright);
+    font-weight: 300;
+    font-style: italic;
+    padding-top: 20px;
+  }
+
+  .problem-quote cite {
+    display: block;
+    margin-top: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 0.1em;
+    font-style: normal;
+  }
+
+  /* DEMO */
+  .demo-section {
+    position: relative;
+    z-index: 1;
+    padding: 80px 48px;
+    background: var(--bg);
+  }
+
+  .demo-wrapper {
+    margin-top: 40px;
+    border: 1px solid var(--cyan-border);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--panel);
+    box-shadow: 0 0 60px rgba(0,212,212,0.05);
+  }
+
+  .demo-titlebar {
+    background: var(--bg3);
+    padding: 0 20px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--cyan-border);
+  }
+
+  .titlebar-dots { display: flex; gap: 8px; }
+  .titlebar-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .titlebar-dot:nth-child(1) { background: #ff5f57; border-color: #e0443e; }
+  .titlebar-dot:nth-child(2) { background: #febc2e; border-color: #d4a12a; }
+  .titlebar-dot:nth-child(3) { background: #28c840; border-color: #1aaa2f; }
+
+  .titlebar-center {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  .titlebar-right {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--green);
+    animation: blink 1.5s ease infinite;
+  }
+
+  /* DEMO MAIN LAYOUT */
+  .demo-sidebar {
+    width: 200px;
+    background: var(--bg2);
+    border-right: 1px solid var(--cyan-border);
+    padding: 20px 0;
+    float: left;
+    height: 560px;
+  }
+
+  .demo-main {
+    margin-left: 200px;
+    padding: 24px;
+  }
+
+  .sidebar-logo {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--cyan-border);
+    margin-bottom: 20px;
+  }
+
+  .sidebar-logo-text {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--cyan2);
+    text-shadow: 0 0 15px rgba(0,240,255,0.5);
+  }
+
+  .sidebar-item {
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+  }
+
+  .sidebar-item.active {
+    color: var(--cyan);
+    background: rgba(0,212,212,0.05);
+    border-left-color: var(--cyan);
+  }
+
+  .sidebar-item:hover:not(.active) {
+    color: var(--text);
+    background: rgba(255,255,255,0.02);
+  }
+
+  /* CRITERIA ROW */
+  .criteria-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--cyan-border);
+  }
+
+  .criteria-field label {
+    display: block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .range-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .range-box {
+    background: var(--bg);
+    border: 1px solid var(--cyan-border);
+    color: var(--cyan2);
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 6px 12px;
+    text-align: center;
+    width: 52px;
+    border-radius: 2px;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--cyan-border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--cyan);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--cyan);
+  }
+
+  .select-styled {
+    background: var(--bg);
+    border: 1px solid var(--cyan-border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 10px 12px;
+    width: 100%;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .toggle-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .toggle-btn {
+    padding: 10px 16px;
+    border: 1px solid var(--cyan-border);
+    background: var(--bg);
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .toggle-btn.active {
+    background: var(--cyan-dim);
+    color: var(--cyan);
+    border-color: var(--cyan);
+    box-shadow: 0 0 10px rgba(0,212,212,0.2);
+  }
+
+  .gen-btn {
+    background: linear-gradient(135deg, rgba(0,212,212,0.3), rgba(0,240,255,0.15));
+    border: 1px solid var(--cyan);
+    color: var(--cyan2);
+    padding: 12px 20px;
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    box-shadow: 0 0 15px rgba(0,212,212,0.2);
+    transition: all 0.2s;
+    white-space: nowrap;
+    width: 100%;
+  }
+
+  .gen-btn:hover {
+    box-shadow: 0 0 25px rgba(0,212,212,0.4);
+    transform: translateY(-1px);
+  }
+
+  /* CHART AREA */
+  .chart-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--bright);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .chart-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+  }
+
+  canvas { width: 100% !important; }
+
+  /* PATIENT TABLE */
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0 12px;
+  }
+
+  .table-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--bright);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .table-count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 0.1em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+  }
+
+  thead tr {
+    background: rgba(0,212,212,0.08);
+    border-bottom: 1px solid var(--cyan-border);
+  }
+
+  thead th {
+    padding: 10px 16px;
+    text-align: left;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    font-size: 10px;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(0,212,212,0.06);
+    transition: background 0.2s;
+  }
+
+  tbody tr:hover { background: rgba(0,212,212,0.04); }
+
+  tbody td {
+    padding: 10px 16px;
+    color: var(--text);
+  }
+
+  .patient-id { color: var(--cyan); cursor: pointer; }
+  .patient-id:hover { text-decoration: underline; }
+
+  .decline-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 2px;
+    font-size: 10px;
+  }
+
+  .decline-high { background: rgba(255,68,68,0.15); color: #ff6666; border: 1px solid rgba(255,68,68,0.3); }
+  .decline-mid { background: rgba(240,168,48,0.15); color: var(--gold); border: 1px solid rgba(240,168,48,0.3); }
+  .decline-low { background: rgba(40,232,122,0.1); color: var(--green); border: 1px solid rgba(40,232,122,0.2); }
+
+  .confidence {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .conf-bar {
+    width: 40px; height: 4px;
+    background: var(--bg);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .conf-fill {
+    height: 100%;
+    background: var(--cyan);
+    border-radius: 2px;
+  }
+
+  /* HOW IT WORKS */
+  .how-section {
+    position: relative;
+    z-index: 1;
+    padding: 80px 48px;
+    background: var(--bg2);
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    margin-top: 48px;
+    background: var(--cyan-border);
+  }
+
+  .step {
+    background: var(--bg3);
+    padding: 40px 32px;
+    position: relative;
+  }
+
+  .step-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 48px;
+    font-weight: 900;
+    color: rgba(0,212,212,0.08);
+    line-height: 1;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px rgba(0,212,212,0.1);
+  }
+
+  .step h4 {
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--bright);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .step p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .step::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--cyan), transparent);
+    opacity: 0.4;
+  }
+
+  /* CTA */
+  .cta-section {
+    position: relative;
+    z-index: 1;
+    padding: 100px 48px;
+    text-align: center;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  .cta-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,212,212,0.05) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .cta-section h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(24px, 3vw, 40px);
+    font-weight: 700;
+    color: var(--bright);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .cta-section p {
+    font-size: 15px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 40px;
+    position: relative;
+  }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--cyan-border);
+    padding: 24px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg2);
+  }
+
+  footer p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .clearfix::after { content: ''; display: table; clear: both; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">AEVOLIA</div>
+  <div class="nav-links">
+    <a href="#problem">Problem</a>
+    <a href="#demo">Demo</a>
+    <a href="#how">Protocol</a>
+    <a href="#demo" class="nav-cta">Request Access</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <div class="hero-content">
+    <div class="hero-tag"><div class="tag-dot"></div>AI-NATIVE CLINICAL RESEARCH ORGANIZATION</div>
+    <h1>We don't fix<br>bad drugs.<br>We fix <span class="accent">bad protocols.</span></h1>
+    <div class="hero-sub-title">Synthetic Control Arm Generator — Rare Disease Trials</div>
+    <p class="hero-desc">Aevolia simulates patient eligibility for DMD trials using AI-generated synthetic cohorts — so biotechs know exactly how many patients qualify before committing $50M to a trial that won't recruit.</p>
+    <div class="hero-actions">
+      <a href="#demo" class="btn-primary">Launch Demo</a>
+      <a href="#how" class="btn-ghost">See protocol →</a>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-num">85%</div>
+    <div class="stat-label">Drug trial failure rate</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">80%</div>
+    <div class="stat-label">Miss enrollment deadlines</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">$50M+</div>
+    <div class="stat-label">Average Phase 2 cost</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">18mo</div>
+    <div class="stat-label">Site activation delay</div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section class="problem-section" id="problem">
+  <div class="section-header">
+    <div class="section-tag">System failure</div>
+    <h2 class="section-title">Good drugs die because<br>of bad protocol design</h2>
+  </div>
+  <div class="problem-grid">
+    <div class="problem-cards">
+      <div class="problem-card">
+        <h4>Overly restrictive inclusion criteria</h4>
+        <p>Sponsors write criteria that eliminate 90% of eligible patients without knowing it — until site activation, when it's too late and too expensive to change.</p>
+      </div>
+      <div class="problem-card">
+        <h4>Protocol amendments mid-trial</h4>
+        <p>Criteria changes after launch trigger 6–12 month delays, IRB resubmissions, and budget overruns. Three DMD confirmatory trials failed in 2024–2025 alone.</p>
+      </div>
+      <div class="problem-card">
+        <h4>No simulation before commitment</h4>
+        <p>Biotechs commit to sites and $50M budgets without knowing how many qualifying patients actually exist in the real patient population.</p>
+      </div>
+      <div class="problem-card">
+        <h4>Placebo arm ethics in pediatric rare disease</h4>
+        <p>Randomizing children with DMD to placebo while they rapidly deteriorate is ethically untenable — but required by standard trial design.</p>
+      </div>
+    </div>
+    <div class="problem-quote">
+      <blockquote>"If you could give them an idea of how much it would improve their recruitment by fiddling with just one exclusion criterion — that would be valuable."</blockquote>
+      <cite>— Gina Ortiz, CCRP | Clinical Research Leader, Aevolia Advisor</cite>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section class="demo-section" id="demo">
+  <div class="section-header" style="text-align:center; max-width:600px; margin:0 auto 40px;">
+    <div class="section-tag" style="justify-content:center;">Live simulation</div>
+    <h2 class="section-title">Synthetic Control Arm Generator</h2>
+  </div>
+
+  <div class="demo-wrapper">
+    <div class="demo-titlebar">
+      <div class="titlebar-dots">
+        <div class="titlebar-dot"></div>
+        <div class="titlebar-dot"></div>
+        <div class="titlebar-dot"></div>
+      </div>
+      <div class="titlebar-center">AEVOLIA — DMD PHASE 2 PROTOCOL SIMULATOR v1.0</div>
+      <div class="titlebar-right"><div class="live-dot"></div>LIVE</div>
+    </div>
+
+    <div class="clearfix">
+      <div class="demo-sidebar">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-text">AEVOLIA</div>
+        </div>
+        <div class="sidebar-item active">⊕ New Cohort</div>
+        <div class="sidebar-item">⊞ Patient Data</div>
+        <div class="sidebar-item">⊗ Analysis</div>
+        <div class="sidebar-item">⊡ Export</div>
+      </div>
+
+      <div class="demo-main">
+        <!-- CRITERIA -->
+        <div class="criteria-row">
+          <div class="criteria-field">
+            <label>Age Range (years)</label>
+            <div class="range-display">
+              <div class="range-box" id="ageMinBox">4</div>
+              <input type="range" id="ageMin" min="4" max="10" value="4" oninput="updateDemo()">
+              <div class="range-box" id="ageMaxBox">7</div>
+              <input type="range" id="ageMax" min="6" max="18" value="7" oninput="updateDemo()">
+            </div>
+          </div>
+          <div class="criteria-field">
+            <label>Mutation Type</label>
+            <select class="select-styled" id="mutType" onchange="updateDemo()">
+              <option value="51">Exon 51</option>
+              <option value="52">Exon 52</option>
+              <option value="53">Exon 53</option>
+              <option value="all">All Deletions</option>
+            </select>
+          </div>
+          <div class="criteria-field">
+            <label>Ambulatory Status</label>
+            <div class="toggle-row">
+              <button class="toggle-btn active" id="ambYes" onclick="setAmb(true)">YES</button>
+              <button class="toggle-btn" id="ambNo" onclick="setAmb(false)">NO</button>
+            </div>
+          </div>
+          <div class="criteria-field">
+            <label>&nbsp;</label>
+            <button class="gen-btn" onclick="generateCohort()">GENERATE<br>SYNTHETIC COHORT</button>
+          </div>
+        </div>
+
+        <!-- CHART -->
+        <div class="chart-label">Disease Progression Comparison</div>
+        <div class="chart-sub">Ambulatory Decline over Time (NSAA Score)</div>
+        <canvas id="progressionChart" height="160"></canvas>
+
+        <!-- TABLE -->
+        <div class="table-header">
+          <div class="table-title">Generated Patients</div>
+          <div class="table-count" id="totalCount">Total: 250</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Patient ID</th>
+              <th>Age</th>
+              <th>Mutation</th>
+              <th>Predicted Decline</th>
+              <th>Confidence Score</th>
+            </tr>
+          </thead>
+          <tbody id="patientTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="how-section" id="how">
+  <div class="section-header" style="text-align:center; max-width:600px; margin:0 auto 0;">
+    <div class="section-tag" style="justify-content:center;">Protocol</div>
+    <h2 class="section-title">How Aevolia Works</h2>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <h4>Input Protocol Criteria</h4>
+      <p>Upload your inclusion and exclusion criteria — age ranges, mutation types, functional scores, prior treatment history.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <h4>Simulate Against Natural History</h4>
+      <p>Aevolia runs your criteria against published DMD natural history datasets (CINRG, PRO-DMD) validated by genomic experts to model your true eligible patient population.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <h4>Receive Optimization Report</h4>
+      <p>See exactly which criteria changes unlock the most patients — with projected enrollment timelines and site recommendations before you commit.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-glow"></div>
+  <h2>De-risk your next DMD trial</h2>
+  <p>Working with a select group of rare disease biotechs. Apply for early access.</p>
+  <a href="mailto:hello@aevolia.com" class="btn-primary">Request Early Access</a>
+</div>
+
+<footer>
+  <div class="logo" style="font-size:16px;">AEVOLIA</div>
+  <p>© 2026 Aevolia. AI-native clinical research optimization.</p>
+  <p>hello@aevolia.com</p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+let ambOn = true;
+let chart;
+
+function setAmb(val) {
+  ambOn = val;
+  document.getElementById('ambYes').classList.toggle('active', val);
+  document.getElementById('ambNo').classList.toggle('active', !val);
+  updateDemo();
+}
+
+function updateDemo() {
+  const ageMin = parseInt(document.getElementById('ageMin').value);
+  const ageMax = parseInt(document.getElementById('ageMax').value);
+  document.getElementById('ageMinBox').textContent = ageMin;
+  document.getElementById('ageMaxBox').textContent = Math.max(ageMax, ageMin + 1);
+}
+
+function generateCohort() {
+  const btn = document.querySelector('.gen-btn');
+  btn.textContent = 'GENERATING...';
+  btn.style.background = 'rgba(0,212,212,0.1)';
+
+  setTimeout(() => {
+    updateChart();
+    updateTable();
+    btn.innerHTML = 'GENERATE<br>SYNTHETIC COHORT';
+    btn.style.background = '';
+  }, 1000);
+}
+
+function updateChart() {
+  const months = Array.from({length: 13}, (_, i) => i * 5);
+
+  const realData = months.map(m => {
+    const base = 85;
+    const decline = m < 20 ? 0 : Math.pow((m - 20) / 40, 1.5) * 45;
+    return Math.max(base - decline + (Math.random() - 0.5) * 3, 40);
+  });
+
+  const synthData = months.map(m => {
+    const base = 85;
+    const decline = m < 20 ? 0 : Math.pow((m - 20) / 40, 1.5) * 44;
+    return Math.max(base - decline, 41);
+  });
+
+  const ctx = document.getElementById('progressionChart').getContext('2d');
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: months.map(m => m),
+      datasets: [
+        {
+          label: 'Standard of Care (Real World Data)',
+          data: realData,
+          borderColor: 'rgba(150,170,190,0.6)',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.4,
+        },
+        {
+          label: 'Synthetic Control Arm (Predicted)',
+          data: synthData,
+          borderColor: '#00d4d4',
+          backgroundColor: 'rgba(0,212,212,0.05)',
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointBackgroundColor: '#00d4d4',
+          pointBorderColor: '#040d1a',
+          tension: 0.4,
+          fill: true,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 800 },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: {
+            color: 'rgba(150,180,200,0.7)',
+            font: { family: 'Share Tech Mono', size: 10 },
+            boxWidth: 20,
+            padding: 16,
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(4,13,26,0.95)',
+          borderColor: 'rgba(0,212,212,0.3)',
+          borderWidth: 1,
+          titleColor: '#00d4d4',
+          bodyColor: '#c8e0f0',
+          titleFont: { family: 'Share Tech Mono', size: 11 },
+          bodyFont: { family: 'Share Tech Mono', size: 11 },
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Time (Months)',
+            color: 'rgba(74,112,144,0.8)',
+            font: { family: 'Share Tech Mono', size: 10 },
+          },
+          grid: { color: 'rgba(0,212,212,0.05)' },
+          ticks: { color: 'rgba(74,112,144,0.8)', font: { family: 'Share Tech Mono', size: 10 } }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'NSAA Score',
+            color: 'rgba(74,112,144,0.8)',
+            font: { family: 'Share Tech Mono', size: 10 },
+          },
+          min: 0, max: 100,
+          grid: { color: 'rgba(0,212,212,0.05)' },
+          ticks: { color: 'rgba(74,112,144,0.8)', font: { family: 'Share Tech Mono', size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+function updateTable() {
+  const mut = document.getElementById('mutType').value;
+  const mutLabel = mut === 'all' ? 'Deletion' : `Exon ${mut}`;
+  const patients = [];
+  const ages = [5.2, 6.8, 4.5, 7.0, 5.9, 6.2, 4.8, 7.3, 5.5, 6.1];
+  const declines = [40, 38, 42, 37, 41, 39, 43, 36, 40, 38];
+  const scores = [98, 99, 97, 99, 98, 97, 96, 99, 98, 97];
+
+  const tbody = document.getElementById('patientTable');
+  tbody.innerHTML = '';
+
+  for (let i = 0; i < 5; i++) {
+    const decline = declines[i];
+    const cls = decline >= 41 ? 'decline-high' : decline >= 39 ? 'decline-mid' : 'decline-low';
+    const conf = scores[i];
+    const row = `<tr>
+      <td class="patient-id">AEV-00${i+1} ↗</td>
+      <td>${ages[i]}</td>
+      <td>${mutLabel}</td>
+      <td><span class="decline-badge ${cls}">↓ -${decline}% (NSA A)</span></td>
+      <td>
+        <div class="confidence">
+          <div class="conf-bar"><div class="conf-fill" style="width:${conf}%"></div></div>
+          ${conf}%
+        </div>
+      </td>
+    </tr>`;
+    tbody.innerHTML += row;
+  }
+
+  document.getElementById('totalCount').textContent = `Total: ${Math.floor(Math.random() * 50) + 230}`;
+}
+
+// Init
+updateDemo();
+generateCohort();
+</script>
+</body>
+</html>
